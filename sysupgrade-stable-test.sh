@@ -2,6 +2,7 @@
 
 USR_NAME='root'
 DEV_ADDR='192.168.10.104'
+DEV_PASS='fitap@network@oawifi'
 TIME_TO_WAIT=60
 
 FW="MS1200S.202403101407-v1.0"
@@ -9,7 +10,7 @@ SIG="md5sum.txt"
 SCRIPTS="post-scp.sh"
 
 usage() {
-	echo "sysupgrade-stable-test.sh <fw name> <device ipaddr> <base wait sec>"
+	echo "sysupgrade-stable-test.sh <fw name> <device ipaddr> <password> <base wait sec>"
 	echo "	$FW $SIG $SCRIPTS must self-checked"
 	exit 0
 }
@@ -23,7 +24,11 @@ usage() {
 }
 
 [ -z "$3" ] || {
-	TIME_TO_WAIT=$3
+	DEV_PASS=$3
+}
+
+[ -z "$4" ] || {
+	TIME_TO_WAIT=$4
 }
 
 [ x"--help" = x"$1" ] && {
@@ -33,6 +38,8 @@ usage() {
 [ -f "$FW" ] && [ -f "$SIG" ] && [ -f "$SCRIPTS" ] || {
 	usage
 }
+
+SSH_URL="$USR_NAME@$DEV_ADDR"
 
 do_scp_and_upgrade() {
 	# 1. apt-get install sshpass
@@ -45,9 +52,9 @@ do_scp_and_upgrade() {
 
 	rm ~/.ssh/known_hosts
 
-	sshpass -p "fitap@network@oawifi" scp -P 12580 $FW $SIG $SCRIPTS $USR_NAME@$DEV_ADDR:/tmp/
+	sshpass -p "$DEV_PASS" scp -P 12580 $FW $SIG $SCRIPTS $SSH_URL:/tmp/
 
-	sshpass -p "fitap@network@oawifi" ssh -p 12580 $USR_NAME@$DEV_ADDR "sh -x /tmp/post-scp.sh $FW $SIG"
+	sshpass -p "$DEV_PASS" ssh -p 12580 $SSH_URL "sh -x /tmp/post-scp.sh $FW $SIG"
 }
 
 # do_scp_and_upgrade
