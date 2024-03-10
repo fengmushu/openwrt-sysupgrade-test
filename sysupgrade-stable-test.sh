@@ -8,6 +8,11 @@ FW="MS1200S.202403101407-v1.0"
 SIG="md5sum.txt"
 SCRIPTS="post-scp.sh"
 
+usage() {
+	echo "sysupgrade-stable-test.sh <fw name> <device ipaddr> <base wait sec>"
+	echo "	$FW $SIG $SCRIPTS must self-checked"
+	exit 0
+}
 
 [ -z "$1" ] || {
 	FW=$1
@@ -19,6 +24,14 @@ SCRIPTS="post-scp.sh"
 
 [ -z "$3" ] || {
 	TIME_TO_WAIT=$3
+}
+
+[ x"--help" = x"$1" ] && {
+	usage
+}
+
+[ -f "$FW" ] && [ -f "$SIG" ] && [ -f "$SCRIPTS" ] || {
+	usage
 }
 
 do_scp_and_upgrade() {
@@ -40,9 +53,12 @@ do_scp_and_upgrade() {
 # do_scp_and_upgrade
 while :;
 do
-	ping $DEV_ADDR -i1 -w3 -W1 || continue
-	let TIME_TO_WAIT="$RANDOM % 60 + 60"
-	logger "acturally wait $TIME_TO_WAIT sec..."
+	ping $DEV_ADDR -i1 -w1 -W1 || {
+		sleep 3
+		continue
+	}
+	let TIME_TO_WAIT="$RANDOM % 60 + $TIME_TO_WAIT"
+	echo "acturally wait $TIME_TO_WAIT sec..."
 	sleep $TIME_TO_WAIT
 	do_scp_and_upgrade
 done
