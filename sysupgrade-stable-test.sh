@@ -41,6 +41,16 @@ usage() {
 
 SSH_URL="$USR_NAME@$DEV_ADDR"
 
+do_fwcheck() {
+	M5SUM=`md5sum "$FW" | awk '{print $1}'`
+	M5SIG=`cat "$SIG" | awk '{print $1}'`
+
+	[ x"$M5SIG" = x"$M5SUM" ] || {
+		echo "checksum failed, fw not correct..."
+		exit 1
+	}
+}
+
 do_scp_and_upgrade() {
 	# 1. apt-get install sshpass
 	#    auto input password
@@ -50,22 +60,29 @@ do_scp_and_upgrade() {
 	#    Are you sure you want to continue connecting (yes/no)? yes
 	# StrictHostKeyChecking accept-new
 
-	rm ~/.ssh/known_hosts
+	rm ~/.ssh/known_hosts > /dev/null 2>&1
 
 	sshpass -p "$DEV_PASS" scp -P 12580 $FW $SIG $SCRIPTS $SSH_URL:/tmp/
 
 	sshpass -p "$DEV_PASS" ssh -p 12580 $SSH_URL "sh -x /tmp/post-scp.sh $FW $SIG"
 }
 
-# do_scp_and_upgrade
+do_fwcheck
+do_scp_and_upgrade
+
+COUNTER=1
 while :;
 do
 	ping $DEV_ADDR -i1 -w1 -W1 || {
 		sleep 3
 		continue
 	}
-	let TIME_TO_WAIT="$RANDOM % 60 + $TIME_TO_WAIT"
-	echo "acturally wait $TIME_TO_WAIT sec..."
-	sleep $TIME_TO_WAIT
+	let WAIT="$RANDOM % 60 + $TIME_TO_WAIT"
+	echo "acturally wait $WAIT sec..."
+	sleep $WAIT
 	do_scp_and_upgrade
+	{
+		let COUNTER=$COUNTER+1
+		echo "round $COUNTER" >> su-test.log
+	}
 done

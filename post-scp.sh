@@ -17,4 +17,6 @@ M5SIG=`cat "$2" | awk '{print $1}'`
 }
 
 sysupgrade $1
+# jffs2reset -y -r
+
 exit 0
